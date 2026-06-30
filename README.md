@@ -1,12 +1,13 @@
 # sbx-pi
 
-Custom template image for running [Pi Coding Agent](https://pi.dev/) inside Docker Sandboxes (sbx).
+Custom template image for running [Pi Coding Agent](https://pi.dev/) inside Docker Sandboxes `sbx`.
 
 
 ## Docs 
 
+- [Pi Coding Agent](https://pi.dev/)
 - [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/)
-- [sbx-shell-pi](https://github.com/geut/sbx-shell-pi)
+
 
 ## How to build, load and run a local template
 
