@@ -1,0 +1,3 @@
+# Tmp output directory
+out/*
+!out/.gitkeep
