@@ -6,6 +6,7 @@ Custom template image for running [Pi Coding Agent](https://pi.dev/) inside Dock
 ## Docs 
 
 - [Pi Coding Agent](https://pi.dev/)
+  - [Releases | Github](https://github.com/earendil-works/pi/releases)
 - [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/)
 
 
@@ -15,7 +16,7 @@ The `Dockerfile` extends the `shell` base image, so run it with the `shell` agen
 
  ```sh
 # 1. Build and tag the image locally
-PI_VERSION=0.80.2
+PI_VERSION=0.81.1
 docker build --build-arg "PI_VERSION=${PI_VERSION}" -t "sbx-pi:${PI_VERSION}" .
 
 # 2. Load the local image into the sandbox runtime (its image store is separate from your host Docker)
