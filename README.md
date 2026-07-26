@@ -31,4 +31,18 @@ sbx run --name pi-sandbox --template "sbx-pi:${PI_VERSION}" shell
 
 The `pi` coding agent will launch automatically in the interactive shell.
 
+### Update git settings
+
+```sh
+# Read your current settings on host
+git config --global user.name
+git config --global user.email
+
+# Start a shell inside the sandbox
+sbx exec -it <sandbox-name> bash
+
+# When inside set the config, it will persist:
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+```
 
