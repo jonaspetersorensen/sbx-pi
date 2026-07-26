@@ -1,7 +1,7 @@
 FROM docker/sandbox-templates:shell
 
 ARG NODEJS_MAJOR_VERSION=24
-ARG PI_VERSION=0.81.1
+ARG PI_VERSION=0.82.1
 
 USER root
 
