@@ -33,6 +33,8 @@ The `pi` coding agent will launch automatically in the interactive shell.
 
 ### Update git settings
 
+Docker sandboxes come with a _clean_ git install, update the config to match your values.
+
 ```sh
 # Read your current settings on host
 git config --global user.name
