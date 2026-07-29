@@ -1,3 +1,10 @@
+# System tools
+# - nodejs: to build pi agent 
+# - Research: 
+#   - pandoc: a universal document converter for moving between markup and office formats. 
+#   - html2text: converts HTML into plain tex
+#   - lynx: a text-based web browser for terminals
+
 FROM docker/sandbox-templates:shell
 
 ARG NODEJS_MAJOR_VERSION=24
@@ -14,6 +21,9 @@ RUN apt-get update \
         > /etc/apt/sources.list.d/nodesource.list \
     && apt-get update \
     && apt-get install -y nodejs \
+       pandoc \
+       html2text \
+       lynx \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
