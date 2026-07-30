@@ -15,8 +15,19 @@ Keep Pi customizations in a separate, version-controlled config repo that you in
 
 ## How to build, load and run a local template
 
+### Quick start (script)
 
- ```sh
+```sh
+# Build + load
+source build.sh
+
+# Custom version
+source build.sh --version 0.83.0
+```
+
+### Manual steps
+
+```sh
 # 1. Build and tag the image locally
 PI_VERSION=0.82.1
 docker build --build-arg "PI_VERSION=${PI_VERSION}" -t "sbx-pi:${PI_VERSION}" .

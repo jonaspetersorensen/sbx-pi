@@ -9,6 +9,8 @@ FROM docker/sandbox-templates:shell
 
 ARG NODEJS_MAJOR_VERSION=24
 ARG PI_VERSION=0.82.1
+ARG GIT_USER_NAME=
+ARG GIT_USER_EMAIL=
 
 USER root
 
@@ -35,3 +37,7 @@ RUN mkdir -p "$HOME/.npm-global" \
   && npm install -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION}
 
 RUN printf '\n# Auto-launch pi coding agent in interactive shells\nif [[ $- == *i* ]] && command -v pi &> /dev/null; then\n    exec pi\nfi\n' >> ~/.bashrc
+
+# Set git config if provided
+RUN if [ -n "${GIT_USER_NAME}" ]; then git config --global user.name "${GIT_USER_NAME}"; fi && \
+    if [ -n "${GIT_USER_EMAIL}" ]; then git config --global user.email "${GIT_USER_EMAIL}"; fi
