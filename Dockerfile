@@ -5,7 +5,7 @@
 #   - html2text: converts HTML into plain tex
 #   - lynx: a text-based web browser for terminals
 
-FROM docker/sandbox-templates:shell
+FROM docker/sandbox-templates:shell-docker
 
 ARG NODEJS_MAJOR_VERSION=24
 ARG PI_VERSION=0.82.1
