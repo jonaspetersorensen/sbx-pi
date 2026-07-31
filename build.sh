@@ -30,11 +30,23 @@ EOF
 # ── Parse args ────────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --version)           PI_VERSION="$2"; shift 2 ;;
-    --git-user-name)     GIT_USER_NAME="$2"; shift 2 ;;
-    --git-user-email)    GIT_USER_EMAIL="$2"; shift 2 ;;
-    -h|--help)           usage ;;
-    *) echo "Unknown option: $1"; return 1 ;;
+  --version)
+    PI_VERSION="$2"
+    shift 2
+    ;;
+  --git-user-name)
+    GIT_USER_NAME="$2"
+    shift 2
+    ;;
+  --git-user-email)
+    GIT_USER_EMAIL="$2"
+    shift 2
+    ;;
+  -h | --help) usage ;;
+  *)
+    echo "Unknown option: $1"
+    return 1
+    ;;
   esac
 done
 
@@ -77,9 +89,9 @@ prompt_yes_no() {
   while true; do
     read -rp "$prompt" answer
     case "$answer" in
-      [Yy]*) return 0 ;;
-      [Nn]*) return 1 ;;
-      "")    [[ "$default" == "Y" ]] && return 0 || return 1 ;;
+    [Yy]*) return 0 ;;
+    [Nn]*) return 1 ;;
+    "") [[ "$default" == "Y" ]] && return 0 || return 1 ;;
     esac
   done
 }
@@ -93,13 +105,13 @@ if [[ "$SKIP_VERSION_SELECTOR" == false ]]; then
 
   if [[ -n "${releases:-}" ]]; then
     # Parse into arrays
-    mapfile -t lines <<< "$releases"
+    mapfile -t lines <<<"$releases"
     count=${#lines[@]}
 
     echo ""
     echo "=== Select Pi version ==="
     for i in $(seq 0 $((count - 1))); do
-      IFS='|' read -r tag date body <<< "${lines[$i]}"
+      IFS='|' read -r tag date body <<<"${lines[$i]}"
       # Strip 'v' prefix
       version="${tag#v}"
       # Format date
@@ -125,8 +137,8 @@ if [[ "$SKIP_VERSION_SELECTOR" == false ]]; then
         if [[ -n "$PI_VERSION" ]]; then
           break
         fi
-      elif [[ "$selection" =~ ^[0-9]+$ ]] && (( selection >= 1 && selection <= count )); then
-        IFS='|' read -r tag _ _ <<< "${lines[$((selection - 1))]}"
+      elif [[ "$selection" =~ ^[0-9]+$ ]] && ((selection >= 1 && selection <= count)); then
+        IFS='|' read -r tag _ _ <<<"${lines[$((selection - 1))]}"
         PI_VERSION="${tag#v}"
         break
       else
