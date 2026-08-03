@@ -8,7 +8,7 @@
 FROM docker/sandbox-templates:shell-docker
 
 ARG NODEJS_MAJOR_VERSION=24
-ARG PI_VERSION=0.82.1
+ARG PI_VERSION=0.83.0
 ARG GIT_USER_NAME
 ARG GIT_USER_EMAIL
 
@@ -30,13 +30,16 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 USER agent
+WORKDIR /home/agent/workspace
 
+# Install pi 
 RUN mkdir -p "$HOME/.npm-global" \
   && npm config set prefix "$HOME/.npm-global" \
-  && printf '\n# npm user-global prefix\nexport PATH="$HOME/.npm-global/bin:$PATH"\n' >> ~/.bashrc \
+  && printf '\n# npm user-global prefix\nexport PATH="$HOME/.npm-global/bin:$PATH"\n' >> "$HOME/.bashrc" \
   && npm install -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION}
 
-RUN printf '\n# Auto-launch pi coding agent in interactive shells\nif [[ $- == *i* ]] && command -v pi &> /dev/null; then\n    exec pi\nfi\n' >> ~/.bashrc
+# Set bash to auto-launch pi 
+RUN printf '\n# Auto-launch pi coding agent in interactive shells\nif [[ $- == *i* ]] && command -v pi &> /dev/null; then\n    exec pi\nfi\n' >> "$HOME/.bashrc"
 
 # Set git config if provided
 RUN if [ -n "${GIT_USER_NAME}" ]; then git config --global user.name "${GIT_USER_NAME}"; fi && \
