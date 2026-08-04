@@ -31,7 +31,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Update components that have outdated ubuntu packages
-RUN curl -fsSL "https://github.com/cli/cli/releases/download/v${GITHUB_GH_VERSION}/gh_${GITHUB_GH_VERSION}_linux_amd64.deb" -o /tmp/gh.deb && sudo dpkg -i /tmp/gh.deb && rm /tmp/gh.deb
+RUN curl -fsSL "https://github.com/cli/cli/releases/download/v${GITHUB_GH_VERSION}/gh_${GITHUB_GH_VERSION}_linux_amd64.deb" -o /tmp/gh.deb && dpkg -i /tmp/gh.deb && rm /tmp/gh.deb
 
 USER agent
 WORKDIR /home/agent/workspace
