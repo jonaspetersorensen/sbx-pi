@@ -9,6 +9,7 @@ FROM docker/sandbox-templates:shell-docker
 
 ARG NODEJS_MAJOR_VERSION=24
 ARG PI_VERSION=0.83.0
+ARG GITHUB_GH_VERSION=2.97.0
 ARG GIT_USER_NAME
 ARG GIT_USER_EMAIL
 
@@ -28,6 +29,9 @@ RUN apt-get update \
        lynx \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Update components that have outdated ubuntu packages
+RUN curl -fsSL "https://github.com/cli/cli/releases/download/v${GITHUB_GH_VERSION}/gh_${GITHUB_GH_VERSION}_linux_amd64.deb" -o /tmp/gh.deb && sudo dpkg -i /tmp/gh.deb && rm /tmp/gh.deb
 
 USER agent
 WORKDIR /home/agent/workspace
