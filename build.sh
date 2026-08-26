@@ -4,7 +4,9 @@ set -eo pipefail
 # ── Defaults ──────────────────────────────────────────────────────────────────
 DEFAULT_PI_VERSION="0.82.1"
 IMAGE_TAG="sbx-pi:${DEFAULT_PI_VERSION}"
-OUTPUT_TAR="out/sbx-pi-v${DEFAULT_PI_VERSION}.tar"
+SCRIPT_DIR="$(dirname -- "$(readlink -f -- ${BASH_SOURCE[0]})")"
+OUTPUT_DIR="${SCRIPT_DIR}/out"
+OUTPUT_TAR="${OUTPUT_DIR}/sbx-pi-v${DEFAULT_PI_VERSION}.tar"
 GIT_USER_NAME=""
 GIT_USER_EMAIL=""
 
@@ -210,14 +212,16 @@ if [[ -n "$GIT_USER_EMAIL" ]]; then
   BUILD_ARGS+=("--build-arg" "GIT_USER_EMAIL=${GIT_USER_EMAIL}")
 fi
 
-docker build "${BUILD_ARGS[@]}" -t "${IMAGE_TAG}" .
+sudo docker build "${BUILD_ARGS[@]}" -t "${IMAGE_TAG}" .
 echo ""
 
 # ── Step 2: Save + Load ───────────────────────────────────────────────────────
 OUTPUT_TAR="out/sbx-pi-v${PI_VERSION}.tar"
 echo "=== Step 2: Save image to ${OUTPUT_TAR} ==="
 mkdir -p out
-docker image save "${IMAGE_TAG}" -o "${OUTPUT_TAR}"
+sudo docker image save "${IMAGE_TAG}" -o "${OUTPUT_TAR}"
+# Give user ownership of all output files 
+sudo chown -R "$USER":"$USER" "${OUTPUT_DIR}"
 echo ""
 
 echo "=== Step 2: Load template into sandbox runtime ==="
