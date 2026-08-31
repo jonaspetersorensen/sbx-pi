@@ -4,6 +4,8 @@
 #   - pandoc: a universal document converter for moving between markup and office formats. 
 #   - html2text: converts HTML into plain tex
 #   - lynx: a text-based web browser for terminals
+# - Extras:
+#   - socat: the runtime's in-VM ssh-agent forwarder is a socat process, which for some strange reason is not installed in the default shell template
 
 FROM docker/sandbox-templates:shell-docker
 
@@ -27,6 +29,7 @@ RUN apt-get update \
        pandoc \
        html2text \
        lynx \
+       socat \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
