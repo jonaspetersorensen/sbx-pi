@@ -6,6 +6,7 @@
 #   - lynx: a text-based web browser for terminals
 # - Extras:
 #   - socat: the runtime's in-VM ssh-agent forwarder is a socat process, which for some strange reason is not installed in the default shell template
+#   - tmux: for multiple agents in the same terminal 
 
 FROM docker/sandbox-templates:shell-docker
 
@@ -30,6 +31,7 @@ RUN apt-get update \
        html2text \
        lynx \
        socat \
+       tmux \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

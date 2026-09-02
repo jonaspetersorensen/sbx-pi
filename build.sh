@@ -212,16 +212,26 @@ if [[ -n "$GIT_USER_EMAIL" ]]; then
   BUILD_ARGS+=("--build-arg" "GIT_USER_EMAIL=${GIT_USER_EMAIL}")
 fi
 
-sudo docker build "${BUILD_ARGS[@]}" -t "${IMAGE_TAG}" .
+# Is user member of docker group?
+if id -nG "$USER" | grep -qw 'docker'; then
+  docker build "${BUILD_ARGS[@]}" -t "${IMAGE_TAG}" .
+else
+  sudo docker build "${BUILD_ARGS[@]}" -t "${IMAGE_TAG}" .
+fi
 echo ""
 
 # ── Step 2: Save + Load ───────────────────────────────────────────────────────
 OUTPUT_TAR="out/sbx-pi-v${PI_VERSION}.tar"
 echo "=== Step 2: Save image to ${OUTPUT_TAR} ==="
 mkdir -p out
-sudo docker image save "${IMAGE_TAG}" -o "${OUTPUT_TAR}"
-# Give user ownership of all output files 
-sudo chown -R "$USER":"$USER" "${OUTPUT_DIR}"
+# Is user member of docker group?
+if id -nG "$USER" | grep -qw 'docker'; then
+  docker image save "${IMAGE_TAG}" -o "${OUTPUT_TAR}"
+else
+  sudo docker image save "${IMAGE_TAG}" -o "${OUTPUT_TAR}"
+  # Give user ownership of all output files
+  sudo chown -R "$USER":"$USER" "${OUTPUT_DIR}"
+fi
 echo ""
 
 echo "=== Step 2: Load template into sandbox runtime ==="
