@@ -4,6 +4,7 @@ set -eo pipefail
 # ── Defaults ──────────────────────────────────────────────────────────────────
 DEFAULT_PI_VERSION="0.84.4"
 IMAGE_TAG="sbx-pi:${DEFAULT_PI_VERSION}"
+LATEST_IMAGE_TAG="sbx-pi:latest"
 SCRIPT_DIR="$(dirname -- "$(readlink -f -- ${BASH_SOURCE[0]})")"
 OUTPUT_DIR="${SCRIPT_DIR}/out"
 OUTPUT_TAR="${OUTPUT_DIR}/sbx-pi-v${DEFAULT_PI_VERSION}.tar"
@@ -214,9 +215,9 @@ fi
 
 # Is user member of docker group?
 if id -nG "$USER" | grep -qw 'docker'; then
-  docker build "${BUILD_ARGS[@]}" -t "${IMAGE_TAG}" .
+  docker build "${BUILD_ARGS[@]}" -t "${IMAGE_TAG}" -t "${LATEST_IMAGE_TAG}" .
 else
-  sudo docker build "${BUILD_ARGS[@]}" -t "${IMAGE_TAG}" .
+  sudo docker build "${BUILD_ARGS[@]}" -t "${IMAGE_TAG}" -t "${LATEST_IMAGE_TAG}" .
 fi
 echo ""
 
@@ -226,9 +227,9 @@ echo "=== Step 2: Save image to ${OUTPUT_TAR} ==="
 mkdir -p out
 # Is user member of docker group?
 if id -nG "$USER" | grep -qw 'docker'; then
-  docker image save "${IMAGE_TAG}" -o "${OUTPUT_TAR}"
+  docker image save "${IMAGE_TAG}" "${LATEST_IMAGE_TAG}" -o "${OUTPUT_TAR}"
 else
-  sudo docker image save "${IMAGE_TAG}" -o "${OUTPUT_TAR}"
+  sudo docker image save "${IMAGE_TAG}" "${LATEST_IMAGE_TAG}" -o "${OUTPUT_TAR}"
   # Give user ownership of all output files
   sudo chown -R "$USER":"$USER" "${OUTPUT_DIR}"
 fi
@@ -239,4 +240,4 @@ sbx template load "${OUTPUT_TAR}"
 echo ""
 
 echo "=== Done ==="
-echo "To run a sandbox: sbx run --name pi-sandbox --template ${IMAGE_TAG} shell"
+echo "To run the kit: sbx run ${SCRIPT_DIR}/kit"

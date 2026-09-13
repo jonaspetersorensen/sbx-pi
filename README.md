@@ -30,13 +30,15 @@ source build.sh --version 0.85.1
 ```sh
 # 1. Build and tag the image locally
 PI_VERSION=0.85.1
-docker build --build-arg "PI_VERSION=${PI_VERSION}" -t "sbx-pi:${PI_VERSION}" .
+docker build --build-arg "PI_VERSION=${PI_VERSION}" \
+  -t "sbx-pi:${PI_VERSION}" -t "sbx-pi:latest" .
 
 # 2. Load the local image into the sandbox runtime (its image store is separate from your host Docker)
-docker image save "sbx-pi:${PI_VERSION}" -o "./out/sbx-pi-v${PI_VERSION}.tar"
+docker image save "sbx-pi:${PI_VERSION}" "sbx-pi:latest" \
+  -o "./out/sbx-pi-v${PI_VERSION}.tar"
 sbx template load "./out/sbx-pi-v${PI_VERSION}.tar"
 
-# 3. Create and run a sandbox using the template. This is where you add your pi customizations.
+# 3. Create and run a sandbox using the template.
 sbx run --name pi-sandbox --template "sbx-pi:${PI_VERSION}" shell
 ```
 
@@ -58,4 +60,3 @@ sbx exec -it <sandbox-name> bash
 git config --global user.name "Your Name"
 git config --global user.email "you@example.com"
 ```
-
