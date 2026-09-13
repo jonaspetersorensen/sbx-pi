@@ -22,14 +22,14 @@ Keep Pi customizations in a separate, version-controlled config repo that you in
 source build.sh
 
 # Custom version
-source build.sh --version 0.83.0
+source build.sh --version 0.85.1
 ```
 
 ### Manual steps
 
 ```sh
 # 1. Build and tag the image locally
-PI_VERSION=0.82.1
+PI_VERSION=0.85.1
 docker build --build-arg "PI_VERSION=${PI_VERSION}" -t "sbx-pi:${PI_VERSION}" .
 
 # 2. Load the local image into the sandbox runtime (its image store is separate from your host Docker)
