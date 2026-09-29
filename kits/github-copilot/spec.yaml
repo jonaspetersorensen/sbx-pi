@@ -1,0 +1,46 @@
+schemaVersion: "2"
+kind: sandbox
+name: pi
+displayName: Pi
+description: Pi Coding Agent with GitHub Copilot authentication
+
+sandbox:
+  image: "sbx-pi:latest"
+
+# Copilot seats answer on a seat specific host. This account holds an enterprise assigned seat,
+# so models.json points pi at api.enterprise.githubcopilot.com. Bind a credential for every host
+# pi may use, and repeat each host under permissions.network.allow below. A host in the inject
+# list but missing from the allow list answers 421. A host in the allow list but missing here
+# sends the guest sentinel to GitHub, which answers 400 bad request: Authorization header is
+# badly formatted. Run setup_copilot_auth.sh --verify inside a sandbox to tell the two apart.
+credentials:
+  - service: copilot
+    apiKey:
+      name: COPILOT_GITHUB_TOKEN
+      proxyManaged: true
+      inject:
+        # Active target. Matches the github-copilot baseUrl in models.json (enterprise seat).
+        - domain: api.enterprise.githubcopilot.com
+          scheme: bearer
+        # Fallback endpoint. Served real completions for this account in earlier testing.
+        # Use it if the enterprise endpoint refuses a model id. See report section 7, Option B.
+        - domain: api.githubcopilot.com
+          scheme: bearer
+        # pi built-in default. pi 0.85.1 hardcodes this host in its Copilot catalog, so keep it
+        # bound for any run that ignores the models.json override.
+        - domain: api.individual.githubcopilot.com
+          scheme: bearer
+        # api.business.githubcopilot.com is absent on purpose. This seat is enterprise assigned,
+        # not business assigned. Add the domain to inject and to network.allow if the seat changes.
+
+permissions:
+  network:
+    allow:
+      - api.github.com
+      # Routes for the three hosts in the credentials block. Keep both lists in sync.
+      - api.enterprise.githubcopilot.com
+      - api.githubcopilot.com
+      - api.individual.githubcopilot.com
+      - github.com
+      - raw.githubusercontent.com
+      - registry.npmjs.org
