@@ -89,6 +89,8 @@ Example:
 ### Step 3: Create sandbox using the github-copilot kit 
 
 ```
-sbx run --name my-pi-copilot --kit ./kits/github-copilot/ pi
+# Note that parameter "--kit" is deprecated.
+# Kits should now be inserted into first positional slot and workspace in last slot
+sbx run --name my-pi-copilot ./kits/github-copilot/ .
 ```
 
