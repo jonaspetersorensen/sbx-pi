@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
-DEFAULT_PI_VERSION="0.84.4"
+DEFAULT_PI_VERSION="0.99.1"
 IMAGE_TAG="sbx-pi:${DEFAULT_PI_VERSION}"
 LATEST_IMAGE_TAG="sbx-pi:latest"
 SCRIPT_DIR="$(dirname -- "$(readlink -f -- ${BASH_SOURCE[0]})")"
