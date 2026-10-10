@@ -78,6 +78,28 @@ Every build rewrites it.
 
 ## Status
 
-The scripts are verified against `@fission-ai/openspec@1.14.1` outside Docker.
-The Dockerfile wiring is not applied yet; it is specified in the image ticket in
-this repository's issue tracker.
+The scripts are verified against `@fission-ai/openspec@1.14.1`, outside Docker and
+inside the built image: `verify.sh` passes 22 of 22 checks there.
+
+Read the scope of that number before you rely on it. `verify.sh` does not read
+the baked image. It sets its own `HOME`, unsets `XDG_DATA_HOME` and
+`XDG_CONFIG_HOME`, and regenerates the override in a temporary home, so it checks
+the mechanism and never the shipped override or the shipped global config. The
+Dockerfile smoke layer is what checks the baked artifacts.
+
+The Dockerfile applies the wiring. It installs
+`@fission-ai/openspec@${OPENSPEC_VERSION}` (default `1.14.1`), runs
+`patch_schema.mjs` into the user schemas directory, writes the global config
+(`profile: custom`, `delivery: commands`, nine workflows), and runs a smoke check
+that asserts the override resolves from the user directory, that a task
+instruction mentions the tracer bullet, that `openspec init --tools pi` writes
+nine prompt files and no `.pi/skills`, and that the baked config still reports
+`delivery=commands` and `profile=custom`. A broken override therefore fails the
+build instead of the first session. Raise the version with `--build-arg
+OPENSPEC_VERSION=...`.
+
+The image sets `OPENSPEC_NO_UPDATE_CHECK=1` and `OPENSPEC_TELEMETRY=0` as `ENV`,
+so they also hold at run time. Without the first, a session could update the
+package to `latest` and leave the override, which was generated from the older
+version, behind. That is the drift the anchor gate prevents at build time.
+Upgrade only by rebuilding with a new `OPENSPEC_VERSION`.

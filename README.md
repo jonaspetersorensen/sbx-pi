@@ -62,6 +62,52 @@ git config --global user.email "you@example.com"
 
 
 
+## OpenSpec
+
+The image installs the OpenSpec CLI and ships a task-planning override that every
+project in the sandbox inherits.
+
+The override shadows the built-in `spec-driven` schema. OpenSpec resolves a schema
+from the project first, then the user directory, then the installed package. The
+image writes the override to the user directory
+(`~/.local/share/openspec/schemas/spec-driven`), so a project needs no file and no
+setup.
+
+The image generates the override at build time.
+`scripts/openspec/patch_schema.mjs` reads the schema out of the installed package,
+applies five anchored edits, and writes the result. If upstream rewording moves an
+anchor, the patch stops and the build fails. That is intentional: a stale copy of
+the upstream workflow never ships.
+
+The image also bakes the global config to `profile: custom`, `delivery: commands`,
+and nine workflows. `openspec init --tools pi` then writes nine prompt files under
+`.pi/prompts/` and writes no `.pi/skills/`.
+
+### Opt one project out
+
+Copy the package schema (`$(npm root -g)/@fission-ai/openspec/schemas/spec-driven`)
+into `openspec/schemas/spec-driven/` inside that project. A project schema wins over
+the user override. To drop the override for the whole image, delete
+`~/.local/share/openspec/schemas/spec-driven`; resolution falls back to the package
+schema.
+
+### Bump OpenSpec
+
+```sh
+docker build --build-arg OPENSPEC_VERSION=1.14.1 -t sbx-pi:0.99.1 .
+```
+
+The image sets `OPENSPEC_NO_UPDATE_CHECK=1`, so the CLI never updates itself and
+never replaces the package underneath the baked override. Upgrade only here, in a
+rebuild, where the anchor gate can check the new version.
+
+If the build fails with `anchor for '...' matched 0 times`, upstream reworded the
+workflow. Update the anchors in `scripts/openspec/patch_schema.mjs`, then run
+`scripts/openspec/verify.sh`. Never hand-edit the generated override; every build
+rewrites it. `build.sh` does not expose `OPENSPEC_VERSION` yet, so it always uses
+the Dockerfile default. See `scripts/openspec/README.md` for the mechanism, the 22
+checks, and the drift runbook.
+
 ## Configure GitHub Copilot authentication
 
 1. Add a sbx secret for copilot 
