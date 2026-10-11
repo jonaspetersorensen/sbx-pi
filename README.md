@@ -21,14 +21,17 @@ Keep Pi customizations in a separate, version-controlled config repo that you in
 source build.sh
 
 # Custom version
-source build.sh --version 0.85.1
+source build.sh --version 1.1.0
 ```
+
+With no `--version`, `build.sh` offers the latest Pi release and falls back to
+`DEFAULT_PI_VERSION`, which equals `ARG PI_VERSION` in `Dockerfile`.
 
 ### Manual steps
 
 ```sh
 # 1. Build and tag the image locally
-PI_VERSION=0.85.1
+PI_VERSION=1.1.0
 docker build --build-arg "PI_VERSION=${PI_VERSION}" \
   -t "sbx-pi:${PI_VERSION}" -t "sbx-pi:latest" .
 
@@ -94,7 +97,7 @@ schema.
 ### Bump OpenSpec
 
 ```sh
-docker build --build-arg OPENSPEC_VERSION=1.14.1 -t sbx-pi:0.99.1 .
+docker build --build-arg OPENSPEC_VERSION=1.14.1 -t sbx-pi:1.1.0 .
 ```
 
 The image sets `OPENSPEC_NO_UPDATE_CHECK=1`, so the CLI never updates itself and

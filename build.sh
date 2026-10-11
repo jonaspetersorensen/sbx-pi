@@ -2,7 +2,8 @@
 set -eo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
-DEFAULT_PI_VERSION="0.99.1"
+# Default Pi version. Keep this value equal to `ARG PI_VERSION` in Dockerfile.
+DEFAULT_PI_VERSION="1.1.0"
 IMAGE_TAG="sbx-pi:${DEFAULT_PI_VERSION}"
 LATEST_IMAGE_TAG="sbx-pi:latest"
 SCRIPT_DIR="$(dirname -- "$(readlink -f -- ${BASH_SOURCE[0]})")"
@@ -19,7 +20,7 @@ Usage: $0 [OPTIONS]
 Build and load an sbx-pi template image.
 
 Options:
-  --version VER              Pi version (skips version selector)
+  --version VER              Pi version (default ${DEFAULT_PI_VERSION}; skips version selector)
   --openspec-version VER     OpenSpec version (skips Dockerfile default)
   --git-user-name NAME       Git user.name (skips git config dialog)
   --git-user-email EMAIL     Git user.email (skips git config dialog)
