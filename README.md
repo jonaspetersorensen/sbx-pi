@@ -109,6 +109,10 @@ rewrites it. The script form of the same pin is `source build.sh --openspec-vers
 `OPENSPEC_VERSION` build arg and the Dockerfile default is used. See
 `scripts/openspec/README.md` for the mechanism, the 22 checks, and the drift runbook.
 
+`build.sh` is sourced, so an exported `OPENSPEC_VERSION` stays set in your shell and
+applies to every later build. After a pinned build, run `unset OPENSPEC_VERSION`, or
+build in a subshell: `bash -c 'source build.sh --openspec-version 1.14.1'`.
+
 ## Configure GitHub Copilot authentication
 
 1. Add a sbx secret for copilot 

@@ -272,6 +272,6 @@ if [[ ${#kits[@]} -eq 0 ]]; then
 else
   echo "To run a kit:"
   for kit_dir in "${kits[@]}"; do
-    echo "  sbx run --name <sandbox-name> ${kit_dir} <workspace>"
+    echo "  sbx run --name <sandbox-name> '${kit_dir}' ."
   done
 fi

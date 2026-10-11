@@ -89,6 +89,37 @@ against are created in a scratch directory outside this repository and are never
       and `scripts/openspec/` appear unchanged in `git status` (that repository's
       `sbx-pi:0.83.0` line stays as it is, per the proposal's exclusions).
 
+## Review round (2026-10-11)
+
+Two read-only reviewers reviewed commit `a2d480e`. Both hit their time limit before writing a
+report file, so their findings were recovered from the run transcripts and re-checked by the
+coordinator before anything was applied.
+
+- Applied, source leak. `build.sh` is sourced, so an exported `OPENSPEC_VERSION` stays set in
+  the shell and applies to every later build. Measured: after `export
+  OPENSPEC_VERSION=0.1.0-legacy`, `source build.sh --version 0.85.1 --git-user-name a
+  --git-user-email b@x` produced `--build-arg OPENSPEC_VERSION=0.1.0-legacy`. This is the
+  behaviour `specs/image-build-version-pinning/spec.md` requires for an exported override, so
+  no code guard was added. README "Bump OpenSpec" now says to `unset OPENSPEC_VERSION` or
+  build in a subshell.
+- Applied, run hint. The hint printed `${kit_dir} <workspace>`. It prints `'${kit_dir}' .`
+  now, which matches README.md:41: one placeholder instead of two, and a kit path with a space
+  survives the paste. Measured: a bare `<name>` placeholder is shell input redirection and
+  fails with `sandbox-name: No such file or directory`, so the pasted line never silently does
+  the wrong thing. The remaining `<sandbox-name>` placeholder stays, because the spec allows a
+  clearly marked placeholder and the script cannot know the sandbox name.
+- Declined, design note. The reviewer claimed `design.md` states the wrong failure mode for a
+  flag with no value. Re-measured: `--openspec-version` with no value exits 1, prints nothing,
+  and runs no build; `--version` behaves the same. `design.md` is correct as written. The wrong
+  claim came from the coordinator, who measured with `source ./build.sh ... | head`, which puts
+  the sourced script in a subshell pipeline and reports the status of `head`.
+- No action. A bad pin version fails at `Dockerfile:87`, where `npm install -g
+  "@fission-ai/openspec@${OPENSPEC_VERSION}"` fails the build. That is loud and at build time.
+  The `--help` fix stays in this commit: task 1.3 cannot be verified without it.
+- Out of scope, left as a follow-up. The doc sweep found `scripts/openspec/README.md` names
+  only the `--build-arg` form of the pin. Adding the script form there is correct but outside
+  the files this change declared, so it was reverted and not committed.
+
 ## Workflow follow-up
 
 - Implement with `/opsx-apply fix-build-pin-and-kit-paths`, keeping edits inside `build.sh`
