@@ -21,14 +21,17 @@ Keep Pi customizations in a separate, version-controlled config repo that you in
 source build.sh
 
 # Custom version
-source build.sh --version 0.85.1
+source build.sh --version 1.1.0
 ```
+
+With no `--version`, `build.sh` offers the latest Pi release and falls back to
+`DEFAULT_PI_VERSION`, which equals `ARG PI_VERSION` in `Dockerfile`.
 
 ### Manual steps
 
 ```sh
 # 1. Build and tag the image locally
-PI_VERSION=0.85.1
+PI_VERSION=1.1.0
 docker build --build-arg "PI_VERSION=${PI_VERSION}" \
   -t "sbx-pi:${PI_VERSION}" -t "sbx-pi:latest" .
 
@@ -38,7 +41,7 @@ docker image save "sbx-pi:${PI_VERSION}" "sbx-pi:latest" \
 sbx template load "./out/sbx-pi-v${PI_VERSION}.tar"
 
 # 3. Create and run the sandbox kit.
-sbx run ./kit
+sbx run --name <sandbox-name> ./kits/github-copilot/ .
 ```
 
 The `pi` coding agent will launch automatically in the interactive shell.
@@ -61,6 +64,57 @@ git config --global user.email "you@example.com"
 ```
 
 
+
+## OpenSpec
+
+The image installs the OpenSpec CLI and ships a task-planning override that every
+project in the sandbox inherits.
+
+The override shadows the built-in `spec-driven` schema. OpenSpec resolves a schema
+from the project first, then the user directory, then the installed package. The
+image writes the override to the user directory
+(`~/.local/share/openspec/schemas/spec-driven`), so a project needs no file and no
+setup.
+
+The image generates the override at build time.
+`scripts/openspec/patch_schema.mjs` reads the schema out of the installed package,
+applies five anchored edits, and writes the result. If upstream rewording moves an
+anchor, the patch stops and the build fails. That is intentional: a stale copy of
+the upstream workflow never ships.
+
+The image also bakes the global config to `profile: custom`, `delivery: commands`,
+and nine workflows. `openspec init --tools pi` then writes nine prompt files under
+`.pi/prompts/` and writes no `.pi/skills/`.
+
+### Opt one project out
+
+Copy the package schema (`$(npm root -g)/@fission-ai/openspec/schemas/spec-driven`)
+into `openspec/schemas/spec-driven/` inside that project. A project schema wins over
+the user override. To drop the override for the whole image, delete
+`~/.local/share/openspec/schemas/spec-driven`; resolution falls back to the package
+schema.
+
+### Bump OpenSpec
+
+```sh
+docker build --build-arg OPENSPEC_VERSION=1.14.1 -t sbx-pi:1.1.0 .
+```
+
+The image sets `OPENSPEC_NO_UPDATE_CHECK=1`, so the CLI never updates itself and
+never replaces the package underneath the baked override. Upgrade only here, in a
+rebuild, where the anchor gate can check the new version.
+
+If the build fails with `anchor for '...' matched 0 times`, upstream reworded the
+workflow. Update the anchors in `scripts/openspec/patch_schema.mjs`, then run
+`scripts/openspec/verify.sh`. Never hand-edit the generated override; every build
+rewrites it. The script form of the same pin is `source build.sh --openspec-version
+1.14.1` (it also honours an exported `OPENSPEC_VERSION`); with no override it sends no
+`OPENSPEC_VERSION` build arg and the Dockerfile default is used. See
+`scripts/openspec/README.md` for the mechanism, the 22 checks, and the drift runbook.
+
+`build.sh` is sourced, so an exported `OPENSPEC_VERSION` stays set in your shell and
+applies to every later build. After a pinned build, run `unset OPENSPEC_VERSION`, or
+build in a subshell: `bash -c 'source build.sh --openspec-version 1.14.1'`.
 
 ## Configure GitHub Copilot authentication
 
