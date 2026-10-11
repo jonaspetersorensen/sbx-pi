@@ -20,12 +20,14 @@ Build and load an sbx-pi template image.
 
 Options:
   --version VER              Pi version (skips version selector)
+  --openspec-version VER     OpenSpec version (skips Dockerfile default)
   --git-user-name NAME       Git user.name (skips git config dialog)
   --git-user-email EMAIL     Git user.email (skips git config dialog)
   -h, --help                 Show this help
 
 Environment:
   PI_VERSION                 Override default Pi version
+  OPENSPEC_VERSION           Override default OpenSpec version
 EOF
   return 0
 }
@@ -37,6 +39,10 @@ while [[ $# -gt 0 ]]; do
     PI_VERSION="$2"
     shift 2
     ;;
+  --openspec-version)
+    OPENSPEC_VERSION="$2"
+    shift 2
+    ;;
   --git-user-name)
     GIT_USER_NAME="$2"
     shift 2
@@ -45,7 +51,12 @@ while [[ $# -gt 0 ]]; do
     GIT_USER_EMAIL="$2"
     shift 2
     ;;
-  -h | --help) usage ;;
+  # `usage` returns from itself, so the help branch has to return from the
+  # script too or this loop prints the usage block forever.
+  -h | --help)
+    usage
+    return 0
+    ;;
   *)
     echo "Unknown option: $1"
     return 1
@@ -195,6 +206,9 @@ if [[ -n "$GIT_USER_NAME" && -n "$GIT_USER_EMAIL" ]]; then
   echo "  git user.name : ${GIT_USER_NAME}"
   echo "  git user.email: ${GIT_USER_EMAIL}"
 fi
+if [[ -n "${OPENSPEC_VERSION:-}" ]]; then
+  echo "  openspec version: ${OPENSPEC_VERSION}"
+fi
 echo ""
 
 if ! prompt_yes_no "Proceed with build?" Y; then
@@ -211,6 +225,11 @@ if [[ -n "$GIT_USER_NAME" ]]; then
 fi
 if [[ -n "$GIT_USER_EMAIL" ]]; then
   BUILD_ARGS+=("--build-arg" "GIT_USER_EMAIL=${GIT_USER_EMAIL}")
+fi
+# Only forward the pin when the operator supplied one, so the Dockerfile ARG
+# default stays the single source of truth for an unpinned build.
+if [[ -n "${OPENSPEC_VERSION:-}" ]]; then
+  BUILD_ARGS+=("--build-arg" "OPENSPEC_VERSION=${OPENSPEC_VERSION}")
 fi
 
 # Is user member of docker group?
@@ -240,4 +259,19 @@ sbx template load "${OUTPUT_TAR}"
 echo ""
 
 echo "=== Done ==="
-echo "To run the kit: sbx run ${SCRIPT_DIR}/kit"
+# Derive the run hint from the kits that actually exist, so the closing guidance
+# cannot outlive the tree the way the hardcoded kit path did.
+kits=()
+for kit_dir in "${SCRIPT_DIR}"/kits/*/; do
+  if [[ -d "$kit_dir" ]]; then
+    kits+=("$kit_dir")
+  fi
+done
+if [[ ${#kits[@]} -eq 0 ]]; then
+  echo "No kit found under ${SCRIPT_DIR}/kits/"
+else
+  echo "To run a kit:"
+  for kit_dir in "${kits[@]}"; do
+    echo "  sbx run --name <sandbox-name> ${kit_dir} <workspace>"
+  done
+fi

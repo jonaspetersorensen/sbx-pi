@@ -6,3 +6,4 @@ out/*
 # pi agent
 
 pi-agent-configs
+.pi/

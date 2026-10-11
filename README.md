@@ -38,7 +38,7 @@ docker image save "sbx-pi:${PI_VERSION}" "sbx-pi:latest" \
 sbx template load "./out/sbx-pi-v${PI_VERSION}.tar"
 
 # 3. Create and run the sandbox kit.
-sbx run ./kit
+sbx run --name <sandbox-name> ./kits/github-copilot/ .
 ```
 
 The `pi` coding agent will launch automatically in the interactive shell.
@@ -104,9 +104,10 @@ rebuild, where the anchor gate can check the new version.
 If the build fails with `anchor for '...' matched 0 times`, upstream reworded the
 workflow. Update the anchors in `scripts/openspec/patch_schema.mjs`, then run
 `scripts/openspec/verify.sh`. Never hand-edit the generated override; every build
-rewrites it. `build.sh` does not expose `OPENSPEC_VERSION` yet, so it always uses
-the Dockerfile default. See `scripts/openspec/README.md` for the mechanism, the 22
-checks, and the drift runbook.
+rewrites it. The script form of the same pin is `source build.sh --openspec-version
+1.14.1` (it also honours an exported `OPENSPEC_VERSION`); with no override it sends no
+`OPENSPEC_VERSION` build arg and the Dockerfile default is used. See
+`scripts/openspec/README.md` for the mechanism, the 22 checks, and the drift runbook.
 
 ## Configure GitHub Copilot authentication
 
