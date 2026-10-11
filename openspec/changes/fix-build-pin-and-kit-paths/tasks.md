@@ -53,6 +53,8 @@ against are created in a scratch directory outside this repository and are never
       other. With `kits/` renamed the closing lines print
       `No kit found under <script dir>/kits/`: no `sbx run` command, no `kits/<name>/` path,
       and no claim that a kit is present.
+      Host confirmation (2026-10-11): see the run-hint paragraph under 3.2 for the line a host
+      run prints and for the `sbx run` that used it.
 - [x] 2.2 In `README.md` manual step 3, replace `sbx run ./kit` with the same positional form
       and a real kit path, `sbx run --name <sandbox-name> ./kits/github-copilot/ .`. Verify:
       `test -d kits/github-copilot` passes, and the two run commands in the README (quick start
@@ -66,14 +68,16 @@ against are created in a scratch directory outside this repository and are never
       (`diff` of the captured stub output is empty) for `source build.sh --version <pi>
       --git-user-name a --git-user-email b@x`, which is the "no OpenSpec version supplied"
       scenario in `specs/image-build-version-pinning/spec.md`.
-- [ ] 3.2 Replace the `docker` stub with reality on a docker-capable machine: run
+- [x] 3.2 Replace the `docker` stub with reality on a docker-capable machine: run
       `source build.sh --openspec-version <pinned>` once, then `sbx` against the loaded
       template and report `openspec --version` inside the sandbox. Verify: the reported version
       equals the pin, and an unpinned build reports the `Dockerfile` `ARG OPENSPEC_VERSION`
       default. Record in the change that this task, not the stubbed checks, is what validates
       the image build and a real `sbx run`.
-      Done except the `sbx` half (2026-10-11, second rebuild, sandbox `sbx-pi`, docker 29.8.1
-      with its own store). This task, not the stubbed checks in 1.2 / 2.1 / 3.1, is what
+      Done except the `sbx` half at the time of writing (2026-10-11, second rebuild, sandbox
+      `sbx-pi`, docker 29.8.1
+      with its own store). The host close-out below finishes that half. This task, not the
+      stubbed checks in 1.2 / 2.1 / 3.1, is what
       validates that the image build accepts `--build-arg OPENSPEC_VERSION=<pin>` and that a
       printed run hint works against a real sandbox runtime; those stubbed checks prove the
       argument vector and the printed paths only.
@@ -149,10 +153,26 @@ against are created in a scratch directory outside this repository and are never
       host shell, where `USER` is set, takes the plain branch and hits none of this. No change
       to `build.sh` follows from it.
 
-      Still open, and it cannot close here: `sbx template load` and the first `sbx run`. `sbx`
-      is a host CLI and is not available inside a sandbox (`command -v sbx` -> nothing), and
-      `build.sh` is a host script. That half of 3.2 needs a host, so the 2.1 kit run hint was
-      never pasted into a shell by any run so far.
+      Was open here, because it cannot close here: `sbx template load` and the first `sbx run`.
+      `sbx` is a host CLI and is not available inside a sandbox (`command -v sbx` -> nothing),
+      and `build.sh` is a host script. That half of 3.2 needed a host.
+
+      Host close-out (2026-10-11, operator run on a host with `sbx`, handover 4 section 3 of
+      `pi-agent-configs#498`). `sbx template load out/sbx-pi-v1.1.0.tar`, then `sbx run --name
+      <sandbox-name> './kits/github-copilot/' .`. Inside that sandbox `openspec --version` ->
+      `1.14.1`, which equals the pin, `pi --version` -> `1.1.0`, and `openspec schema which
+      spec-driven` -> `Source: user`. The pin therefore reaches a real `sbx` runtime through a
+      loaded template, the baked override is active there, and
+      [`sbx-pi#12`](https://github.com/jonaspetersorensen/sbx-pi/issues/12) is closed.
+      Both branches are on GitHub: `sbx-pi` `0af39a1`, `pi-agent-configs` `8714c91`. The
+      `Dockerfile` default half of this task stays as stated above — stub evidence plus
+      `Dockerfile:16` — and was not re-measured with a second real build.
+
+      Run hint, task 2.1, same host run. `build.sh` prints one ready-to-paste line per kit, and
+      for this checkout that line is
+      `sbx run --name <sandbox-name> '/home/jonas/dev/sbx-pi/kits/github-copilot/' .`: quoted
+      kit path, positional order name, kit path, workspace, matching `README.md:41`. The
+      operator started the sandbox above with the same positional form and a relative kit path.
 - [x] 3.3 Sweep the two in-scope files for leftover stale guidance. Verify:
       `grep -rn "sbx run .*kit" build.sh README.md` lists only kit paths that exist under
       `kits/` or clearly-marked placeholders, and `pi-agent-configs/README.md`, `Dockerfile`
