@@ -106,14 +106,29 @@ against are created in a scratch directory outside this repository and are never
       equals the pin, `pi --version` -> `1.1.0`, `openspec schema which spec-driven` ->
       `Source: user`, baked config `delivery=commands`, `profile=custom`, the 9-workflow list,
       and `openspec init --tools pi` in a clean `/tmp/ws` wrote exactly the 9 `opsx-*.md`
-      prompt files and no `.pi/skills`. With no project, the same RPC call advertises 0 `opsx`
-      prompts, so the prompts come from the project and not from the image. Say plainly: the
+      prompt files and no `.pi/skills`. Say plainly: the
       init, schema-source, prompt-count, `.pi/skills`, and config checks above repeat what the
-      `Dockerfile` build-time smoke layer (`Dockerfile:108-121`) already asserts, and that layer
+      `Dockerfile` build-time smoke layer (`Dockerfile:106-120`) already asserts, and that layer
       passed inside run 2 (`smoke: 9 prompt files, no .pi/skills, delivery=commands,
       profile=custom`). What this run adds over that layer is the pin differential between
       1.14.0 and 1.14.1, `pi --version` inside the image, and a container started from outside
       the build.
+
+      One claim here was wrong and the finding changed. The first probe read 0 `opsx` prompts
+      with no project and concluded that the prompts come from the project. The probe was
+      invalid: it piped the RPC response through `head -c 400`, so it inspected 400 bytes of a
+      multi-kilobyte response, and it had no with-project pair to compare against. Re-run as a
+      differential in the same image (`out/evidence-3-2/c6-differential.sh`): no project gave 2
+      commands and 0 `opsx`; `/tmp/ws` after `openspec init --tools pi`, holding 9 prompt files,
+      also gave 2 commands and 0 `opsx`. The 0 proved nothing. The cause came next
+      (`out/evidence-3-2/c6-trust-test.sh`): the image carries no `~/.pi/agent/settings.json`,
+      so no project trust is granted and pi loads no `.pi/prompts`. Write that one file with
+      `defaultProjectTrust: "always"` and the same probe in the same project returns 11
+      commands, 9 of them `opsx-*` at `scope: project`. Measured in the image rather than in a
+      bootstrapped sandbox, that is direct support for the `defaultProjectTrust` decision in
+      pi-agent-configs#500: the image supplies the CLI and the prompt files, and project trust
+      is what makes pi offer them. The sandbox number above, 56 commands and 9 `opsx-*`, is the
+      bootstrapped case, where `bootstrap.sh` installed that setting.
       Fidelity to the host-built image: 15 of 24 layers identical, divergence starts at the
       first npm layer, `PATH` and `Cmd` identical.
 
@@ -174,6 +189,32 @@ coordinator before anything was applied.
 - Out of scope, left as a follow-up. The doc sweep found `scripts/openspec/README.md` names
   only the `--build-arg` form of the pin. Adding the script form there is correct but outside
   the files this change declared, so it was reverted and not committed.
+
+## Review round (2026-10-11, second rebuild)
+
+One `delegate` child reviewed the `pi-agent-configs` side of this run: nine claims against
+commit `035823d`, report file written first, all nine passed. Its one finding was a
+`README.md` gap that this change did not cause, applied there as `8714c91`. The evidence audit
+of the task 3.2 record ran as a coordinator self-check after three review lanes timed out on it.
+
+- Applied, corrected. The `opsx` probe claim in 3.2 was wrong and is replaced above with the
+  differential that supports the new statement. The old probe truncated the RPC response and had
+  no with-project pair.
+- Applied, provenance. The in-image checks that repeat the `Dockerfile` build-time smoke layer
+  (`Dockerfile:106-120`) are now named as repeats, and the smoke layer's own pass line is
+  quoted, so no one counts them twice as coverage.
+- Applied, artifacts. The layer comparison, the tar listing, both probes, both build logs, and
+  the image test log now live in `out/evidence-3-2/` with the command that produced each, so
+  every number in 3.2 can be re-measured. `out/` is gitignored, so the artifacts die with the
+  sandbox; the record is what persists.
+- Not a finding. `build.sh` is a host script. Sourcing it inside a sandbox under `set -u` is
+  outside its intended use, and the operator confirmed `sbx template load` cannot run inside a
+  sandbox, so nothing in `build.sh` changes.
+- Lane fact. Three review lanes timed out on the evidence audit at 480 s, 480 s, and 420 s, one
+  of them with only two 5 KB input files. The `reviewer` agent has no shell and no write tool,
+  so its whole report has to leave in the final reply, and reading a 55 KB build log costs the
+  turn. What worked was the `delegate` review of the commit: narrow claims, report file first,
+  commands it runs itself.
 
 ## Workflow follow-up
 
