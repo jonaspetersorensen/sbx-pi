@@ -72,17 +72,72 @@ against are created in a scratch directory outside this repository and are never
       equals the pin, and an unpinned build reports the `Dockerfile` `ARG OPENSPEC_VERSION`
       default. Record in the change that this task, not the stubbed checks, is what validates
       the image build and a real `sbx run`.
-      Not done here (2026-10-11): this sandbox has a docker daemon but not what the task
-      needs. `timeout 90 docker pull alpine` succeeded (`Status: Downloaded newer image for
-      alpine:latest`, exit 0), which is irrelevant to this image — `Dockerfile:11` is
-      `FROM docker/sandbox-templates:shell-docker`, absent locally (`docker images` lists only
-      `searxng/searxng` and the new `alpine:latest`), and there is no `sbx` on `PATH`
-      (`command -v sbx` -> nothing), so neither the build half nor the `sbx run` /
-      `openspec --version` half can run. The applying run was also told not to start an image
-      build of this repo. This task, not the stubbed checks in 1.2 / 2.1 / 3.1, is what
+      Done except the `sbx` half (2026-10-11, second rebuild, sandbox `sbx-pi`, docker 29.8.1
+      with its own store). This task, not the stubbed checks in 1.2 / 2.1 / 3.1, is what
       validates that the image build accepts `--build-arg OPENSPEC_VERSION=<pin>` and that a
       printed run hint works against a real sandbox runtime; those stubbed checks prove the
       argument vector and the printed paths only.
+
+      Runtime measured inside the rebuilt sandbox, the first measurement of the pinned CLI in
+      a real `sbx` runtime rather than plain Docker: image `sbx-pi:1.1.0` plus `sbx-pi:latest`
+      (`out/sbx-pi-v1.1.0.tar`, `RepoTags ["sbx-pi:1.1.0","sbx-pi:latest"]`, image config
+      created `2026-10-10T23:02:23Z`), `pi --version` -> `1.1.0`, `openspec --version` ->
+      `1.14.1`, `openspec schema which spec-driven` -> `Source: user`, path
+      `/home/agent/.local/share/openspec/schemas/spec-driven`, shadowing the package schema.
+      The baked override is active, so the largest open assumption in the change holds.
+      `/opsx-propose` is offered: RPC `get_commands` (`printf '{"type":"get_commands"}\n' |
+      timeout 120 pi --mode rpc --no-session`) returned 56 commands, 9 of them `opsx-*`, each
+      with `scope: project` under `/home/jonas/dev/sbx-pi/.pi/prompts/`.
+
+      Build half, real `docker build`, run from a scratch copy of the checkout (`Dockerfile`,
+      `build.sh`, `README.md`, `scripts/`, `kits/`, `openspec/`; no `.git`, no `out/`, no
+      `pi-agent-configs/`, so the 802 MB tar under `out/` was never touched and the build
+      context stayed small). `printf 'n\nY\n' | source build.sh --version 1.1.0
+      --openspec-version 1.14.0` produced a `docker build` that ran `npm install -g
+      --ignore-scripts "@fission-ai/openspec@1.14.0"`: the pin reaches the install, the
+      `Dockerfile` default `1.14.1` does not. That build then failed in the same `RUN`, at
+      `patch_schema.mjs`: `anchor for 'task groups are vertical slices' matched 0 times,
+      expected exactly 1`. The override is therefore locked to 1.14.1, and any other pin fails
+      the image build at build time and loudly. See the follow-up note below.
+
+      Second run, pin `1.14.1`: build succeeded, tags `sbx-pi:1.1.0` and `sbx-pi:latest`,
+      3.39 GB unpacked, 802 MB tar, step 2 `docker image save` ok. `docker run --rm
+      --entrypoint bash sbx-pi:1.1.0` then reported `openspec --version` -> `1.14.1`, which
+      equals the pin, `pi --version` -> `1.1.0`, `openspec schema which spec-driven` ->
+      `Source: user`, baked config `delivery=commands`, `profile=custom`, the 9-workflow list,
+      and `openspec init --tools pi` in a clean `/tmp/ws` wrote exactly the 9 `opsx-*.md`
+      prompt files and no `.pi/skills`. With no project, the same RPC call advertises 0 `opsx`
+      prompts, so the prompts come from the project and not from the image. Say plainly: the
+      init, schema-source, prompt-count, `.pi/skills`, and config checks above repeat what the
+      `Dockerfile` build-time smoke layer (`Dockerfile:108-121`) already asserts, and that layer
+      passed inside run 2 (`smoke: 9 prompt files, no .pi/skills, delivery=commands,
+      profile=custom`). What this run adds over that layer is the pin differential between
+      1.14.0 and 1.14.1, `pi --version` inside the image, and a container started from outside
+      the build.
+      Fidelity to the host-built image: 15 of 24 layers identical, divergence starts at the
+      first npm layer, `PATH` and `Cmd` identical.
+
+      Unpinned half, not re-measured with a real build: an unpinned run prints no
+      `OPENSPEC_VERSION` token (stub evidence, 1.2 and 3.1) and `Dockerfile:16` is
+      `ARG OPENSPEC_VERSION=1.14.1`, so an unpinned build installs 1.14.1. The running sandbox
+      image reports 1.14.1, which is consistent with that but does not prove it.
+
+      Step 2 and the run hint stopped before `sbx`, for a reason this run created. `build.sh`
+      is a host script: it is meant to run outside a sandbox, and the operator confirmed that
+      `sbx template load` inside a sandbox is expected to be impossible, not a defect. This run
+      sourced it inside a sandbox from a wrapper that set `set -u` without exporting `USER`, so
+      `build.sh:248` (`id -nG "$USER"`) printed `USER: unbound variable`, took the `sudo`
+      branch, and left a root-owned `out/sbx-pi-v1.1.0.tar`; `build.sh:253` then expanded
+      `"$USER":"$USER"` in `sudo chown` and aborted the sourced script with exit 1. Measured
+      with `env -u USER bash -c 'set -uo pipefail; if id -nG "$USER" | grep -qw docker; then
+      ...'`. The account is in the docker group (`id -nG` -> `agent sudo docker`), so a normal
+      host shell, where `USER` is set, takes the plain branch and hits none of this. No change
+      to `build.sh` follows from it.
+
+      Still open, and it cannot close here: `sbx template load` and the first `sbx run`. `sbx`
+      is a host CLI and is not available inside a sandbox (`command -v sbx` -> nothing), and
+      `build.sh` is a host script. That half of 3.2 needs a host, so the 2.1 kit run hint was
+      never pasted into a shell by any run so far.
 - [x] 3.3 Sweep the two in-scope files for leftover stale guidance. Verify:
       `grep -rn "sbx run .*kit" build.sh README.md` lists only kit paths that exist under
       `kits/` or clearly-marked placeholders, and `pi-agent-configs/README.md`, `Dockerfile`
