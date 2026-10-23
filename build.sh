@@ -3,7 +3,7 @@ set -eo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
 # Default Pi version. Keep this value equal to `ARG PI_VERSION` in Dockerfile.
-DEFAULT_PI_VERSION="1.1.0"
+DEFAULT_PI_VERSION="1.4.0"
 IMAGE_TAG="sbx-pi:${DEFAULT_PI_VERSION}"
 LATEST_IMAGE_TAG="sbx-pi:latest"
 SCRIPT_DIR="$(dirname -- "$(readlink -f -- ${BASH_SOURCE[0]})")"
