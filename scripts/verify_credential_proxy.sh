@@ -15,7 +15,7 @@ Options:
   -h, --help    Show this help
 
 Results:
-  injected     Endpoint accepted a bogus key, so the proxy replaced the header.
+  injected     Endpoint answered 2xx to a bogus key, so the proxy replaced the header.
   passthrough  Endpoint rejected the bogus key (401/400/403). No header rewrite happened. The host is
                missing from inject, or the domain, port or plain HTTP is outside the match.
   421          The host is in inject but missing from permissions.network.allow.
@@ -40,6 +40,7 @@ if [[ ${#urls[@]} -eq 0 ]]; then
   while read -r host; do
     case "$host" in
     api.*githubcopilot.com) urls+=("https://${host}/models") ;;
+    192.168.1.235) urls+=("http://${host}:11234/v1/models") ;;
     *) urls+=("http://${host}/") ;;
     esac
   done < <(sed -n 's/^ *- domain: *//p' "$spec" | sort -u)
@@ -53,7 +54,8 @@ for url in "${urls[@]}"; do
   000) verdict="unreachable"; failures=$((failures + 1)) ;;
   421) verdict="421 (host in inject but missing from network.allow)"; failures=$((failures + 1)) ;;
   401 | 400 | 403) verdict="passthrough (sentinel rejected, ${code})"; failures=$((failures + 1)) ;;
-  *) verdict="injected (${code})" ;;
+  2??) verdict="injected (${code})" ;;
+  *) verdict="inconclusive (${code}); probe a path that requires auth with --url"; failures=$((failures + 1)) ;;
   esac
   printf '%-60s %s\n' "$url" "$verdict"
 done
