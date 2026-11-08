@@ -40,7 +40,6 @@ if [[ ${#urls[@]} -eq 0 ]]; then
   while read -r host; do
     case "$host" in
     api.*githubcopilot.com) urls+=("https://${host}/models") ;;
-    192.168.1.235) urls+=("http://${host}:11234/v1/models") ;;
     *) urls+=("http://${host}/") ;;
     esac
   done < <(sed -n 's/^ *- domain: *//p' "$spec" | sort -u)

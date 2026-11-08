@@ -2,42 +2,28 @@ schemaVersion: "2"
 kind: sandbox
 name: pi-local-qwen
 displayName: Pi (local Qwen)
-description: Pi Coding Agent with a proxy-managed credential for the local Qwen endpoint
+description: Pi Coding Agent with network access to the local Qwen endpoint
 
 sandbox:
   image: "sbx-pi:latest"
 
-# The local endpoint is a llama.cpp style server that requires a Bearer key. The egress proxy
-# replaces the Authorization header for every host in inject, so the sandbox only holds the
-# sentinel value proxy-managed. Repeat each host under permissions.network.allow below. A host
-# in inject but missing from allow answers 421. A host in allow but missing here sends the
-# sentinel to the endpoint, which answers 401. Run scripts/verify_credential_proxy.sh inside a
-# sandbox to tell the two apart.
+# The local endpoint speaks plain HTTP and requires a Bearer key. A kit credential
+# (credentials[].apiKey.proxyManaged) cannot inject over plain HTTP: the proxy forwards the
+# request unchanged and the endpoint answers 401 for the sentinel. A host side custom secret
+# does work, because the proxy swaps its placeholder in the request headers. So this kit only
+# opens the network route. Create the secret on the host before creating the sandbox:
+#   sbx secret set-custom --host 192.168.1.235 --env LOCAL_QWEN_API_KEY \
+#     --placeholder 'local-qwen-{rand}' --value "$KEY"
+# and set the endpoint apiKey to ${LOCAL_QWEN_API_KEY} in models.json. See README.
 #
-# Schema answers, measured with sbx in a sandbox created from this kit (2026-11-08):
-#   1. domain accepts a bare IP address. sbx kit validate raises no warning.
-#   2. domain does not take a port. With 192.168.1.235:11234, sbx kit validate warns that the
-#      domain is not covered by network.allow even when allow lists the same host and port.
-#      Keep the port out of the match.
-#   3. Injection does NOT work for plain HTTP. The proxy forwards http:// requests unchanged
-#      (policy log shows proxy "forward") and the endpoint answers 401 for the sentinel.
-#      A DNS name (192-168-1-235.sslip.io) behaves the same, so a name is not a workaround.
-# Result: LOCAL_QWEN_API_KEY is set to proxy-managed, but the endpoint rejects it until the
-# endpoint is served over HTTPS (TLS in front of llama.cpp, or a tunnel), which is a separate
-# change. Until then the inject entry takes effect only for https:// requests to this host.
-credentials:
-  - service: local-qwen
-    apiKey:
-      name: LOCAL_QWEN_API_KEY
-      proxyManaged: true
-      inject:
-        - domain: 192.168.1.235
-          scheme: bearer
+# Measured with sbx (2026-11-08): kit inject domain accepts a bare IP but not a port; kit inject
+# does not rewrite plain HTTP; HTTPS on a non-443 port is tunnelled without inspection
+# (policy log "forward-bypass"), so TLS on 11234 would not help either.
 
 permissions:
   network:
     allow:
-      # Route for the host in the credentials block. Keep both lists in sync.
+      # Local Qwen endpoint (llama.cpp, plain HTTP on port 11234).
       - 192.168.1.235
       - github.com
       - raw.githubusercontent.com

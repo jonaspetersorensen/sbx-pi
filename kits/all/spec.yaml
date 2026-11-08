@@ -2,14 +2,14 @@ schemaVersion: "2"
 kind: sandbox
 name: pi-all
 displayName: Pi (Copilot and local Qwen)
-description: Pi Coding Agent with GitHub Copilot and local Qwen credentials
+description: Pi Coding Agent with GitHub Copilot credentials and local Qwen network access
 
 sandbox:
   image: "sbx-pi:latest"
 
 # This kit combines kits/github-copilot and kits/local-qwen. sbx accepts one kit per run, so it
-# repeats both credentials. Keep it in sync with those kits. See kits/local-qwen/spec.yaml for
-# the open schema questions about the local endpoint.
+# repeats both. Keep it in sync with those kits. The local Qwen key is a host side custom
+# secret, not a kit credential. See kits/local-qwen/spec.yaml.
 #
 # Copilot seats answer on a seat specific host. This account holds an enterprise assigned seat,
 # so models.json points pi at api.enterprise.githubcopilot.com. Bind a credential for every host
@@ -36,19 +36,12 @@ credentials:
           scheme: bearer
         # api.business.githubcopilot.com is absent on purpose. This seat is enterprise assigned,
         # not business assigned. Add the domain to inject and to network.allow if the seat changes.
-  - service: local-qwen
-    apiKey:
-      name: LOCAL_QWEN_API_KEY
-      proxyManaged: true
-      inject:
-        - domain: 192.168.1.235
-          scheme: bearer
 
 permissions:
   network:
     allow:
       - api.github.com
-      # Routes for the four hosts in the credentials block. Keep both lists in sync.
+      # Routes for the three hosts in the credentials block. Keep both lists in sync.
       - api.enterprise.githubcopilot.com
       - api.githubcopilot.com
       - api.individual.githubcopilot.com
