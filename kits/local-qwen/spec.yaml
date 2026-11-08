@@ -1,0 +1,38 @@
+schemaVersion: "2"
+kind: sandbox
+name: pi-local-qwen
+displayName: Pi (local Qwen)
+description: Pi Coding Agent with a proxy-managed credential for the local Qwen endpoint
+
+sandbox:
+  image: "sbx-pi:latest"
+
+# The local endpoint is a llama.cpp style server that requires a Bearer key. The egress proxy
+# replaces the Authorization header for every host in inject, so the sandbox only holds the
+# sentinel value proxy-managed. Repeat each host under permissions.network.allow below. A host
+# in inject but missing from allow answers 421. A host in allow but missing here sends the
+# sentinel to the endpoint, which answers 401. Run scripts/verify_credential_proxy.sh inside a
+# sandbox to tell the two apart.
+#
+# Open schema questions. Confirm each with scripts/verify_credential_proxy.sh and record the
+# answer here. If one is no, give the endpoint a DNS name and a matched port.
+#   1. Does domain accept a bare IP address? Every other example is a DNS name.
+#   2. Does the match accept a port such as 11234? If not, the port is outside the match.
+#   3. Does injection work for plain HTTP, not only MITM HTTPS? This endpoint speaks HTTP.
+credentials:
+  - service: local-qwen
+    apiKey:
+      name: LOCAL_QWEN_API_KEY
+      proxyManaged: true
+      inject:
+        - domain: 192.168.1.235
+          scheme: bearer
+
+permissions:
+  network:
+    allow:
+      # Route for the host in the credentials block. Keep both lists in sync.
+      - 192.168.1.235
+      - github.com
+      - raw.githubusercontent.com
+      - registry.npmjs.org

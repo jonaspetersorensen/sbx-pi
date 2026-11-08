@@ -148,3 +148,53 @@ Example:
 sbx run --name my-pi-copilot ./kits/github-copilot/ .
 ```
 
+
+## Configure the local Qwen endpoint credential
+
+The local endpoint (`http://192.168.1.235:11234/v1`) requires a Bearer key. The kit makes the
+egress proxy inject it, so the sandbox only holds the sentinel `proxy-managed`.
+
+### Choose a kit
+
+`sbx run` accepts one kit, so pick the one that matches the providers you need:
+
+| Kit | Credentials |
+| --- | --- |
+| `./kits/github-copilot/` | Copilot |
+| `./kits/local-qwen/` | local Qwen |
+| `./kits/all/` | Copilot and local Qwen. Keep it in sync with the other two. |
+
+### Step 1: Add secret
+
+```sh
+# Prompts for the API key without putting it in shell history
+sbx secret set local-qwen
+```
+
+### Step 2: Create the sandbox
+
+```sh
+sbx run --name my-pi-all ./kits/all/ .
+```
+
+In `models.json` set `apiKey` for `local-qwen` to `${LOCAL_QWEN_API_KEY}`.
+
+### Step 3: Verify
+
+Run inside the sandbox:
+
+```sh
+scripts/verify_credential_proxy.sh
+scripts/verify_credential_proxy.sh --url http://192.168.1.235:11234/v1/models
+```
+
+Each host reports `injected` or `passthrough`. Also reported: `421` (host in `inject` but not in
+`network.allow`) and `401` (sentinel reached the endpoint, no rewrite). `pi auth check` is not
+proof; it reports `ready` for any value.
+
+### Limits
+
+- The proxy replaces the header whatever the client sends. It hides the key; it does not limit which process may use the endpoint.
+- The endpoint speaks plain HTTP, so the key crosses the LAN in clear text. TLS or a tunnel is a separate change.
+- Any process that reaches the proxy can call every registered host.
+- Bare-IP domain, port matching and plain-HTTP injection are unconfirmed. See the comment in `kits/local-qwen/spec.yaml`.
