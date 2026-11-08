@@ -2,6 +2,12 @@
 # Verify proxy-managed credential injection from inside a sandbox.
 # For every host in a kit's inject list, send a bearer value that cannot be a real key
 # and report whether the egress proxy replaced it.
+# When sourced, run in a child shell so `exit` cannot close the caller's terminal or tmux pane.
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  bash "${BASH_SOURCE[0]}" "$@"
+  return $?
+fi
+
 set -uo pipefail
 
 usage() {

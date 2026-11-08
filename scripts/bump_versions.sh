@@ -6,6 +6,13 @@
 #   PI_VERSION            npm @earendil-works/pi-coding-agent (also build.sh)
 #   GITHUB_GH_VERSION     latest GitHub CLI release
 #   OPENSPEC_VERSION      npm @fission-ai/openspec
+# Sourced scripts leak `set -e` and `exit` into the caller's shell and close the terminal or
+# tmux pane on any failure. When sourced, run in a child shell instead.
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  bash "${BASH_SOURCE[0]}" "$@"
+  return $?
+fi
+
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"

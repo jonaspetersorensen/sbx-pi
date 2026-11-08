@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Sourced scripts leak `set -e` and `exit` into the caller's shell and close the terminal or
+# tmux pane on any failure. When sourced, run in a child shell instead.
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  bash "${BASH_SOURCE[0]}" "$@"
+  return $?
+fi
+
 set -eo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
@@ -52,15 +59,15 @@ while [[ $# -gt 0 ]]; do
     GIT_USER_EMAIL="$2"
     shift 2
     ;;
-  # `usage` returns from itself, so the help branch has to return from the
-  # script too or this loop prints the usage block forever.
+  # `usage` returns from itself, so the help branch has to exit the script
+  # too or this loop prints the usage block forever.
   -h | --help)
     usage
-    return 0
+    exit 0
     ;;
   *)
     echo "Unknown option: $1"
-    return 1
+    exit 1
     ;;
   esac
 done
@@ -216,7 +223,7 @@ echo ""
 
 if ! prompt_yes_no "Proceed with build?" Y; then
   echo "Aborted."
-  return 0
+  exit 0
 fi
 
 # ── Step 1: Build ─────────────────────────────────────────────────────────────
