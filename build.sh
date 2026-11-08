@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
+# Sourced scripts leak `set -e` and `exit` into the caller's shell and close the terminal or
+# tmux pane on any failure. When sourced, run in a child shell instead.
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  bash "${BASH_SOURCE[0]}" "$@"
+  return $?
+fi
+
 set -eo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
 # Default Pi version. Keep this value equal to `ARG PI_VERSION` in Dockerfile.
-DEFAULT_PI_VERSION="1.4.0"
+DEFAULT_PI_VERSION="1.5.0"
 IMAGE_TAG="sbx-pi:${DEFAULT_PI_VERSION}"
 LATEST_IMAGE_TAG="sbx-pi:latest"
-SCRIPT_DIR="$(dirname -- "$(readlink -f -- ${BASH_SOURCE[0]})")"
+SCRIPT_DIR="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 OUTPUT_DIR="${SCRIPT_DIR}/out"
 OUTPUT_TAR="${OUTPUT_DIR}/sbx-pi-v${DEFAULT_PI_VERSION}.tar"
 GIT_USER_NAME=""
@@ -52,15 +59,15 @@ while [[ $# -gt 0 ]]; do
     GIT_USER_EMAIL="$2"
     shift 2
     ;;
-  # `usage` returns from itself, so the help branch has to return from the
-  # script too or this loop prints the usage block forever.
+  # `usage` returns from itself, so the help branch has to exit the script
+  # too or this loop prints the usage block forever.
   -h | --help)
     usage
-    return 0
+    exit 0
     ;;
   *)
     echo "Unknown option: $1"
-    return 1
+    exit 1
     ;;
   esac
 done
@@ -72,21 +79,23 @@ if [[ -n "${PI_VERSION:-}" ]]; then
 fi
 
 # ── Fetch latest releases ────────────────────────────────────────────────────
+# Warnings go to stderr: the caller captures stdout as the release list.
 fetch_releases() {
-  local json
-  json=$(curl -s https://api.github.com/repos/earendil-works/pi/releases 2>/dev/null) || {
-    echo "Warning: Could not fetch releases from GitHub API."
-    echo "Using default version: ${DEFAULT_PI_VERSION}"
+  local json out
+  json=$(curl -fsS https://api.github.com/repos/earendil-works/pi/releases 2>/dev/null) || {
+    echo "Warning: Could not fetch releases from GitHub API (network error or rate limit)." >&2
+    echo "Using default version: ${DEFAULT_PI_VERSION}" >&2
     return 1
   }
 
-  if [[ -z "$json" ]]; then
-    echo "Warning: GitHub API returned empty response."
-    echo "Using default version: ${DEFAULT_PI_VERSION}"
+  # An error body such as a rate limit message is a JSON object, not an array.
+  out=$(echo "$json" | jq -r 'if type == "array" then .[0:5] | .[] | "\(.tag_name)|\(.published_at)|\(.body // "No description" | gsub("\n";" ")[:120])" else empty end' 2>/dev/null)
+  if [[ -z "$out" ]]; then
+    echo "Warning: GitHub API returned no usable release list." >&2
+    echo "Using default version: ${DEFAULT_PI_VERSION}" >&2
     return 1
   fi
-
-  echo "$json" | jq -r '.[0:5] | .[] | "\(.tag_name)|\(.published_at)|\(.body // "No description" | gsub("\\n";" ")[:120])"'
+  echo "$out"
 }
 
 # ── Helper: yes/no prompt ────────────────────────────────────────────────────
@@ -214,7 +223,7 @@ echo ""
 
 if ! prompt_yes_no "Proceed with build?" Y; then
   echo "Aborted."
-  return 0
+  exit 0
 fi
 
 # ── Step 1: Build ─────────────────────────────────────────────────────────────

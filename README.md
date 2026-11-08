@@ -112,9 +112,16 @@ rewrites it. The script form of the same pin is `source build.sh --openspec-vers
 `OPENSPEC_VERSION` build arg and the Dockerfile default is used. See
 `scripts/openspec/README.md` for the mechanism, the 22 checks, and the drift runbook.
 
-`build.sh` is sourced, so an exported `OPENSPEC_VERSION` stays set in your shell and
-applies to every later build. After a pinned build, run `unset OPENSPEC_VERSION`, or
-build in a subshell: `bash -c 'source build.sh --openspec-version 1.14.1'`.
+`build.sh` runs in a child shell even when sourced, so a failure or abort never closes your
+terminal or tmux pane, and `--openspec-version` does not leak into your shell. An exported
+`OPENSPEC_VERSION` is still honoured.
+
+## Bump pinned versions
+
+`scripts/bump_versions.sh` looks up the latest Node.js LTS major, Pi, GitHub CLI and OpenSpec
+releases and pins them as exact defaults in `Dockerfile` and `build.sh`. Use `--dry-run` to
+preview. After a bump, rebuild; if the build fails with `anchor for '...' matched 0 times`,
+follow the OpenSpec drift steps above.
 
 ## Configure GitHub Copilot authentication
 
@@ -148,3 +155,99 @@ Example:
 sbx run --name my-pi-copilot ./kits/github-copilot/ .
 ```
 
+
+## Configure the local Qwen endpoint key
+
+The local endpoint (`http://192.168.1.235:11234/v1`) speaks plain HTTP and requires a Bearer
+key. A kit `credentials` entry cannot inject over plain HTTP (the proxy forwards it unchanged and
+the endpoint answers `401`). A host side custom secret does work: the sandbox holds a
+placeholder, and the egress proxy swaps in the real key in the request headers.
+
+### Choose a kit
+
+`sbx run` accepts one kit, so pick the one that matches the providers you need:
+
+| Kit | Use it for |
+| --- | --- |
+| `./kits/local-qwen/` | Local Qwen only. Opens the network route to `192.168.1.235`. |
+| `./kits/github-copilot/` | Copilot only. Adds the Copilot credential. |
+| `./kits/all/` | Copilot and local Qwen in one sandbox. Keep it in sync with the other two. |
+
+The `local-qwen` and `all` kits carry no key. The key comes from a host side custom secret
+(step 1), so it works the same with either kit.
+
+### Step 1: Add the custom secret (before creating the sandbox)
+
+```sh
+# Reads the key without putting it in shell history
+read -rsp 'Local Qwen API key: ' KEY; echo
+sbx secret set-custom --host 192.168.1.235 --env LOCAL_QWEN_API_KEY \
+  --placeholder 'local-qwen-{rand}' --value "$KEY"
+unset KEY
+```
+
+The secret is global, so every new sandbox gets `LOCAL_QWEN_API_KEY` set to the placeholder.
+It does not appear in a sandbox that already exists; recreate that sandbox.
+
+### Step 2: Point pi at the endpoint (not in scope of this repo)
+
+In pi `models.json`, read the key from the environment variable:
+
+```json
+{
+  "providers": {
+    "local-qwen": {
+      "baseUrl": "http://192.168.1.235:11234/v1",
+      "api": "openai-completions",
+      "apiKey": "${LOCAL_QWEN_API_KEY}"
+    }
+  }
+}
+```
+
+### Step 3: Create the sandbox
+
+```sh
+# Local Qwen only
+sbx run --name my-pi-qwen ./kits/local-qwen/ .
+
+# Copilot and local Qwen
+sbx run --name my-pi-all ./kits/all/ .
+```
+
+### Step 4: Verify
+
+Run inside the sandbox. Only a request that reaches the endpoint proves the swap; `pi auth check`
+reports `ready` for any value.
+
+```sh
+echo "$LOCAL_QWEN_API_KEY"   # prints local-qwen-<random>, never the real key
+curl -s -o /dev/null -w '%{http_code}\n' \
+  -H "Authorization: Bearer $LOCAL_QWEN_API_KEY" http://192.168.1.235:11234/v1/models   # expect 200
+curl -s -o /dev/null -w '%{http_code}\n' \
+  -H 'Authorization: Bearer anything' http://192.168.1.235:11234/v1/models              # expect 401
+```
+
+The `200` and the `401` together show the test can fail. If the first call returns `401`, the
+secret was missing when the sandbox was created.
+
+`scripts/verify_credential_proxy.sh` checks the Copilot hosts in a kit and reports `injected`,
+`passthrough` (key not replaced), `421` (host in `inject` but not in `network.allow`) or
+`unreachable`. It sends a bogus key, so it does not apply to the Qwen custom secret; use the
+`curl` calls above.
+
+### Rotate or remove the key
+
+```sh
+sbx secret ls                    # lists custom secrets, with placeholder and target host
+sbx secret rm --help             # remove the custom secret, then run step 1 again to rotate
+```
+
+Recreate sandboxes after a change so they pick up the new placeholder.
+
+### Limits
+
+- The proxy replaces the header whatever the client sends. It hides the key; it does not limit which process may use the endpoint.
+- The endpoint speaks plain HTTP, so the key crosses the LAN in clear text. TLS on port 11234 would not help the swap: the proxy tunnels HTTPS on non-443 ports without inspecting it.
+- Any process that reaches the proxy can call every registered host.
+- The custom secret lives on the host, not in the kit. Create it before the sandbox, or `LOCAL_QWEN_API_KEY` is unset.

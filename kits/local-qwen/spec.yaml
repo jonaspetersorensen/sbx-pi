@@ -1,0 +1,30 @@
+schemaVersion: "2"
+kind: sandbox
+name: pi-local-qwen
+displayName: Pi (local Qwen)
+description: Pi Coding Agent with network access to the local Qwen endpoint
+
+sandbox:
+  image: "sbx-pi:latest"
+
+# The local endpoint speaks plain HTTP and requires a Bearer key. A kit credential
+# (credentials[].apiKey.proxyManaged) cannot inject over plain HTTP: the proxy forwards the
+# request unchanged and the endpoint answers 401 for the sentinel. A host side custom secret
+# does work, because the proxy swaps its placeholder in the request headers. So this kit only
+# opens the network route. Create the secret on the host before creating the sandbox:
+#   sbx secret set-custom --host 192.168.1.235 --env LOCAL_QWEN_API_KEY \
+#     --placeholder 'local-qwen-{rand}' --value "$KEY"
+# and set the endpoint apiKey to ${LOCAL_QWEN_API_KEY} in models.json. See README.
+#
+# Measured with sbx (2026-11-08): kit inject domain accepts a bare IP but not a port; kit inject
+# does not rewrite plain HTTP; HTTPS on a non-443 port is tunnelled without inspection
+# (policy log "forward-bypass"), so TLS on 11234 would not help either.
+
+permissions:
+  network:
+    allow:
+      # Local Qwen endpoint (llama.cpp, plain HTTP on port 11234).
+      - 192.168.1.235
+      - github.com
+      - raw.githubusercontent.com
+      - registry.npmjs.org
