@@ -197,4 +197,4 @@ proof; it reports `ready` for any value.
 - The proxy replaces the header whatever the client sends. It hides the key; it does not limit which process may use the endpoint.
 - The endpoint speaks plain HTTP, so the key crosses the LAN in clear text. TLS or a tunnel is a separate change.
 - Any process that reaches the proxy can call every registered host.
-- Bare-IP domain, port matching and plain-HTTP injection are unconfirmed. See the comment in `kits/local-qwen/spec.yaml`.
+- Measured with sbx: `domain` accepts a bare IP, does not take a port, and does **not** inject over plain HTTP (the proxy forwards `http://` requests unchanged). Until the endpoint is served over HTTPS, requests to `http://192.168.1.235:11234` still answer `401`. Serve it over TLS or a tunnel, then point `baseUrl` at the `https://` URL. See `kits/local-qwen/spec.yaml`.

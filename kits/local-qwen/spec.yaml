@@ -14,11 +14,17 @@ sandbox:
 # sentinel to the endpoint, which answers 401. Run scripts/verify_credential_proxy.sh inside a
 # sandbox to tell the two apart.
 #
-# Open schema questions. Confirm each with scripts/verify_credential_proxy.sh and record the
-# answer here. If one is no, give the endpoint a DNS name and a matched port.
-#   1. Does domain accept a bare IP address? Every other example is a DNS name.
-#   2. Does the match accept a port such as 11234? If not, the port is outside the match.
-#   3. Does injection work for plain HTTP, not only MITM HTTPS? This endpoint speaks HTTP.
+# Schema answers, measured with sbx in a sandbox created from this kit (2026-11-08):
+#   1. domain accepts a bare IP address. sbx kit validate raises no warning.
+#   2. domain does not take a port. With 192.168.1.235:11234, sbx kit validate warns that the
+#      domain is not covered by network.allow even when allow lists the same host and port.
+#      Keep the port out of the match.
+#   3. Injection does NOT work for plain HTTP. The proxy forwards http:// requests unchanged
+#      (policy log shows proxy "forward") and the endpoint answers 401 for the sentinel.
+#      A DNS name (192-168-1-235.sslip.io) behaves the same, so a name is not a workaround.
+# Result: LOCAL_QWEN_API_KEY is set to proxy-managed, but the endpoint rejects it until the
+# endpoint is served over HTTPS (TLS in front of llama.cpp, or a tunnel), which is a separate
+# change. Until then the inject entry takes effect only for https:// requests to this host.
 credentials:
   - service: local-qwen
     apiKey:
