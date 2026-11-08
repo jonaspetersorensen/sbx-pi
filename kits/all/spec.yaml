@@ -16,7 +16,7 @@ sandbox:
 # pi may use, and repeat each host under permissions.network.allow below. A host in the inject
 # list but missing from the allow list answers 421. A host in the allow list but missing here
 # sends the guest sentinel to GitHub, which answers 400 bad request: Authorization header is
-# badly formatted. Run setup_copilot_auth.sh --verify inside a sandbox to tell the two apart.
+# badly formatted. Run scripts/verify_credential_proxy.sh inside a sandbox to tell the two apart.
 credentials:
   - service: copilot
     apiKey:
@@ -27,7 +27,7 @@ credentials:
         - domain: api.enterprise.githubcopilot.com
           scheme: bearer
         # Fallback endpoint. Served real completions for this account in earlier testing.
-        # Use it if the enterprise endpoint refuses a model id. See report section 7, Option B.
+        # Use it if the enterprise endpoint refuses a model id.
         - domain: api.githubcopilot.com
           scheme: bearer
         # pi built-in default. pi 0.85.1 hardcodes this host in its Copilot catalog, so keep it
