@@ -116,6 +116,13 @@ rewrites it. The script form of the same pin is `source build.sh --openspec-vers
 applies to every later build. After a pinned build, run `unset OPENSPEC_VERSION`, or
 build in a subshell: `bash -c 'source build.sh --openspec-version 1.14.1'`.
 
+## Bump pinned versions
+
+`scripts/bump_versions.sh` looks up the latest Node.js LTS major, Pi, GitHub CLI and OpenSpec
+releases and pins them as exact defaults in `Dockerfile` and `build.sh`. Use `--dry-run` to
+preview. After a bump, rebuild; if the build fails with `anchor for '...' matched 0 times`,
+follow the OpenSpec drift steps above.
+
 ## Configure GitHub Copilot authentication
 
 1. Add a sbx secret for copilot 
