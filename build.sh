@@ -6,7 +6,7 @@ set -eo pipefail
 DEFAULT_PI_VERSION="1.4.0"
 IMAGE_TAG="sbx-pi:${DEFAULT_PI_VERSION}"
 LATEST_IMAGE_TAG="sbx-pi:latest"
-SCRIPT_DIR="$(dirname -- "$(readlink -f -- ${BASH_SOURCE[0]})")"
+SCRIPT_DIR="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 OUTPUT_DIR="${SCRIPT_DIR}/out"
 OUTPUT_TAR="${OUTPUT_DIR}/sbx-pi-v${DEFAULT_PI_VERSION}.tar"
 GIT_USER_NAME=""
@@ -72,21 +72,23 @@ if [[ -n "${PI_VERSION:-}" ]]; then
 fi
 
 # ── Fetch latest releases ────────────────────────────────────────────────────
+# Warnings go to stderr: the caller captures stdout as the release list.
 fetch_releases() {
-  local json
-  json=$(curl -s https://api.github.com/repos/earendil-works/pi/releases 2>/dev/null) || {
-    echo "Warning: Could not fetch releases from GitHub API."
-    echo "Using default version: ${DEFAULT_PI_VERSION}"
+  local json out
+  json=$(curl -fsS https://api.github.com/repos/earendil-works/pi/releases 2>/dev/null) || {
+    echo "Warning: Could not fetch releases from GitHub API (network error or rate limit)." >&2
+    echo "Using default version: ${DEFAULT_PI_VERSION}" >&2
     return 1
   }
 
-  if [[ -z "$json" ]]; then
-    echo "Warning: GitHub API returned empty response."
-    echo "Using default version: ${DEFAULT_PI_VERSION}"
+  # An error body such as a rate limit message is a JSON object, not an array.
+  out=$(echo "$json" | jq -r 'if type == "array" then .[0:5] | .[] | "\(.tag_name)|\(.published_at)|\(.body // "No description" | gsub("\n";" ")[:120])" else empty end' 2>/dev/null)
+  if [[ -z "$out" ]]; then
+    echo "Warning: GitHub API returned no usable release list." >&2
+    echo "Using default version: ${DEFAULT_PI_VERSION}" >&2
     return 1
   fi
-
-  echo "$json" | jq -r '.[0:5] | .[] | "\(.tag_name)|\(.published_at)|\(.body // "No description" | gsub("\\n";" ")[:120])"'
+  echo "$out"
 }
 
 # ── Helper: yes/no prompt ────────────────────────────────────────────────────
