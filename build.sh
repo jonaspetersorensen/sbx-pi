@@ -10,7 +10,7 @@ set -eo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
 # Default Pi version. Keep this value equal to `ARG PI_VERSION` in Dockerfile.
-DEFAULT_PI_VERSION="1.5.0"
+DEFAULT_PI_VERSION="1.5.2"
 IMAGE_TAG="sbx-pi:${DEFAULT_PI_VERSION}"
 LATEST_IMAGE_TAG="sbx-pi:latest"
 SCRIPT_DIR="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
@@ -45,10 +45,6 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
   --version)
     PI_VERSION="$2"
-    shift 2
-    ;;
-  --openspec-version)
-    OPENSPEC_VERSION="$2"
     shift 2
     ;;
   --git-user-name)
@@ -215,9 +211,6 @@ echo "  PI version : ${PI_VERSION}"
 if [[ -n "$GIT_USER_NAME" && -n "$GIT_USER_EMAIL" ]]; then
   echo "  git user.name : ${GIT_USER_NAME}"
   echo "  git user.email: ${GIT_USER_EMAIL}"
-fi
-if [[ -n "${OPENSPEC_VERSION:-}" ]]; then
-  echo "  openspec version: ${OPENSPEC_VERSION}"
 fi
 echo ""
 
